@@ -1,0 +1,193 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@id([provider, providerAccountId])
+}
+
+// USER ENTITY
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  emailVerified DateTime?
+  password String
+  firstName String
+  lastName String
+  // Relationship
+  // M TO 1
+  courseId String
+  course Course @relation(fields: [courseId], references: [id])
+  // Optional Fields
+  middleName String? @default("")
+  bio String? @default("")
+  schoolId String? @default("")
+  personalEmail String? @default("")
+  phoneNumber String? @default("")
+  city String? @default("")
+  province String? @default("")
+  country String? @default("")
+  birthdate DateTime? 
+  image String? @default("")
+  isAlumni Boolean @default(false)
+  // Admin
+  lock Boolean @default(false)
+  role Role @default(USER)
+  // Relationship
+  accounts Account[]
+  followedBy Follows[] @relation("followedBy")
+  following  Follows[] @relation("following")
+  preferences Preferences?
+  // M TO M
+  scholarship UserScholarships[]
+  skill Skill[]
+  // Content Relationship
+  achievement Achievement[]
+  project Project[]
+  education Education[]
+  // Status
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// M TO M (explicit)
+model Scholarship {
+  id String @id @default(cuid())
+  name String
+  // Relationship
+  user UserScholarships[]
+}
+
+model UserScholarships {
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  scholarshipId String
+  scholarship Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  selected Boolean @default(false)
+  selectionStatus String @default("none")
+  @@id([userId, scholarshipId])
+}
+
+// Pre-Defined
+model Skill {
+  id String @id @default(cuid())
+  name String
+  category String
+  // Relationship
+  user User[]
+}
+// Category must be predefined as an array
+
+model Course {
+  id String @id @default(cuid())
+  name String
+  image String?
+  // Relationship
+  user User[]
+}
+
+// Discovery
+model Follows {
+  followedBy   User @relation("followedBy", fields: [followedById], references: [id], onDelete: Cascade)
+  followedById String
+  following    User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId  String
+
+  @@id([followingId, followedById])
+}
+
+// ONE TO ONE 
+model Preferences {
+  id String @id @default(cuid())
+  privacy Privacy @default(PUBLIC)
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Content
+model Achievement {
+  id String @id @default(cuid())
+  name String
+  dateAchieved DateTime
+  description String
+  // Relationship
+  userId String
+  user User @relation(fields: [userId],references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id String @id @default(cuid())
+  name String
+  dateCompleted DateTime
+  description String
+  // Relationship
+  userId String
+  user User @relation(fields: [userId],references: [id], onDelete: Cascade)
+}
+
+model Education {
+  id String @id @default(cuid())
+  name String
+  dateStarted DateTime
+  dateEnded DateTime?
+  // Relationship
+  userId String
+  user User @relation(fields: [userId],references: [id], onDelete: Cascade)
+}
+
+// Authentication
+model PasswordToken {
+  id String @id @default(cuid())
+  token String
+  email String
+  expires DateTime
+  @@unique([token, email])
+}
+
+model EmailToken {
+  id String @id @default(cuid())
+  token String
+  email String
+  expires DateTime
+  password String?
+  @@unique([token, email])
+}
+
+// ENUMS
+enum Role {
+  USER
+  ADMIN
+}
+enum Privacy {
+  PUBLIC
+  PRIVATE
+  HIDDEN
+}
